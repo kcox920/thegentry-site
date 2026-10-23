@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["L9Z74Z4NYZ.com.gentryapp.gentry"],
+        "components": [{ "/": "/i/*", "comment": "Guest invitations" }]
+      }
+    ]
+  }
+}

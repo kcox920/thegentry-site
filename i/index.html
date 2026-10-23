@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>You're Invited — The Gentry</title>
+  <meta name="description" content="You've been invited to a private gathering on The Gentry.">
+  <meta name="robots" content="noindex">
+  <meta property="og:title" content="You're invited">
+  <meta property="og:description" content="Accept your invitation and sign the house terms with The Gentry.">
+  <meta name="theme-color" content="#0b0b0b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .invite { text-align: center; padding: 72px 0 96px; }
+    .code {
+      display: inline-block;
+      font-family: var(--sans);
+      font-size: clamp(28px, 8vw, 40px);
+      letter-spacing: 0.25em;
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 16px 20px 16px 28px;
+      margin: 16px 0 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .steps { text-align: left; max-width: 30em; margin: 40px auto 0; color: #d9d4c9; }
+    .steps li { margin-bottom: 12px; }
+    button.copy {
+      background: none; border: 0; color: var(--muted); cursor: pointer;
+      font: inherit; font-size: 14px; text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="mark" href="/"><small>The</small>Gentry</a>
+    <nav><a href="/support.html">Support</a></nav>
+  </div>
+</header>
+
+<main class="invite">
+  <div class="wrap narrow">
+    <div class="eyebrow">An invitation</div>
+    <h1>You're invited.</h1>
+    <p class="lede" style="margin: 0 auto;">Your host uses The Gentry to welcome guests. Accept your invitation and sign the house terms on your phone, and you'll be expected at the door.</p>
+
+    <div id="has-code" hidden>
+      <hr class="rule" style="margin: 40px auto;">
+      <p class="muted">Your invitation code</p>
+      <div class="code" id="code"></div>
+      <div><button class="copy" id="copy" type="button">Copy code</button></div>
+    </div>
+
+    <ol class="steps">
+      <li><strong>Get The Gentry</strong> for iPhone or Android. <span class="muted">(Now in early access. Your host can share the download.)</span></li>
+      <li><strong>Sign in</strong> with your email. You'll get a one-time code; there's no password.</li>
+      <li>If The Gentry is already installed, tap the link in your text again and it opens directly. Otherwise, tap <strong>Have an invitation code?</strong> and enter the code above.</li>
+      <li><strong>Sign the house terms</strong> and you're all set. Tap <strong>Arrive</strong> at the door.</li>
+    </ol>
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>© 2026 The Gentry</span>
+    <span>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/support.html">Support</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // Only show codes in the expected format.
+  const code = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
+  if (/^[2-9A-HJKMNP-Z]{10}$/.test(code)) {
+    document.getElementById('code').textContent = code;
+    document.getElementById('has-code').hidden = false;
+    document.getElementById('copy').addEventListener('click', async (e) => {
+      try {
+        await navigator.clipboard.writeText(code);
+        e.target.textContent = 'Copied';
+      } catch {
+        e.target.textContent = 'Select the code above to copy it';
+      }
+    });
+  }
+</script>
+</body>
+</html>
