@@ -97,6 +97,9 @@ h3 { font-size: 26px; color: var(--gold); }
   letter-spacing: 0.08em;
 }
 
+.badge-link { text-decoration: none; background: var(--gold); color: #0b0b0b; font-weight: 600; }
+.badge-link:hover, .badge-link:focus-visible { filter: brightness(1.1); }
+
 /* Phone mock */
 .phones { display: flex; justify-content: center; gap: 20px; }
 .phone {
