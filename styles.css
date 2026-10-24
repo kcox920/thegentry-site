@@ -5,8 +5,11 @@
   --gold-soft: rgba(201, 169, 110, 0.25);
   --ivory: #f6f1e7;
   --muted: #9a948a;
-  --go: #00e05a;
-  --stop: #ff1a1a;
+  /* Door-check colors, toned down for the site (the app itself uses full brightness). */
+  --go: #0e6e3f;
+  --stop: #8e2121;
+  --go-text: #63b98b;
+  --stop-text: #d4837f;
   --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -110,8 +113,8 @@ h3 { font-size: 26px; color: var(--gold); }
   color: #fff;
   font-family: var(--sans);
 }
-.phone.go { background: var(--go); }
-.phone.stop { background: var(--stop); margin-top: 48px; }
+.phone.go { background: linear-gradient(160deg, #13804b, var(--go) 70%); }
+.phone.stop { background: linear-gradient(160deg, #a12828, var(--stop) 70%); margin-top: 48px; }
 .phone .ring {
   width: 74px; height: 74px; border: 4px solid #fff; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
