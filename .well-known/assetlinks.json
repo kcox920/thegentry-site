@@ -1,11 +1,25 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.gentryapp.gentry",
       "sha256_cert_fingerprints": [
         "7D:A3:B1:7D:94:F4:E6:8D:0F:5A:A8:10:69:63:C2:AB:B4:89:4A:F1:8A:82:EF:AC:3B:97:8D:F2:E5:C9:E4:85"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.thegentry.gentry",
+      "sha256_cert_fingerprints": [
+        "BD:8A:D9:67:11:6C:BA:97:8D:46:7A:06:8D:70:7D:20:72:16:AF:FB:A9:7F:31:B5:0C:95:AF:B4:CE:C0:40:91"
       ]
     }
   }
