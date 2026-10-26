@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>The Gentry beta (Android)</title>
+  <title>Join The Gentry beta</title>
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0b0b0b">
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
@@ -23,6 +23,10 @@
     .steps { color: #d9d4c9; padding-left: 20px; }
     .steps li { margin-bottom: 12px; }
     code { word-break: break-all; font-size: 13px; color: var(--muted); }
+    .stores { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0 8px; }
+    .store { border: 1px solid #2a2a2a; border-radius: 10px; padding: 24px; background: #121212; }
+    .store h2 { margin-top: 0; }
+    @media (max-width: 720px) { .stores { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -36,30 +40,50 @@
 <main class="beta">
   <div class="wrap narrow">
     <span class="tag">Beta</span>
-    <h1>The Gentry for Android</h1>
-    <p class="lede">Thank you for helping us test. This is an early version for Android; it isn't on the Play Store yet, so you install the file directly.</p>
+    <h1>Join The Gentry beta</h1>
+    <p class="lede">Thank you for helping us test. Pick your phone below. It takes about two minutes, and you can leave anytime.</p>
+    <p class="muted">Both stores review each beta before it opens to everyone. If a button below says the beta isn't accepting testers yet, check back in a day or two.</p>
 
-    <a class="dl" href="https://github.com/kcox920/thegentry-site/releases/latest/download/TheGentry-beta.apk">Download for Android (26 MB)</a>
-    <p class="muted">Android 7 or newer, on a 64-bit phone (nearly every phone made since 2017).</p>
+    <div class="stores">
+      <section class="store">
+        <h2>iPhone</h2>
+        <a class="dl" href="https://testflight.apple.com/join/vTaCb3FZ">Join on TestFlight</a>
+        <ol class="steps">
+          <li>Open this page on your iPhone and tap the button above.</li>
+          <li>If you don't have <strong>TestFlight</strong>, Apple's free beta app, it will offer to install it first.</li>
+          <li>In TestFlight, tap <strong>Accept</strong>, then <strong>Install</strong>.</li>
+          <li>Open The Gentry and sign in with Google or your email.</li>
+        </ol>
+        <p class="muted">Needs iOS 15 or newer.</p>
+      </section>
 
-    <h2 style="margin-top:48px;">Installing</h2>
-    <ol class="steps">
-      <li>Tap <strong>Download</strong> above and open the file when it finishes.</li>
-      <li>Android will ask to allow installs from your browser. Choose <strong>Allow</strong> for this one install; you can switch it back off afterward.</li>
-      <li>If Google Play Protect says the app is from an unknown developer, choose <strong>Install anyway</strong>. That's expected for a beta that isn't on the Play Store yet.</li>
-      <li>Open The Gentry and sign in with Google or your email.</li>
-    </ol>
+      <section class="store">
+        <h2>Android</h2>
+        <a class="dl" href="https://play.google.com/apps/testing/app.thegentry.gentry">Join on Google Play</a>
+        <ol class="steps">
+          <li>Open this page on your Android phone, signed in to the Google account you use in Play, and tap the button.</li>
+          <li>Tap <strong>Become a tester</strong>, then follow the link to <strong>download it on Google Play</strong>.</li>
+          <li>Install it like any other app. Updates arrive automatically.</li>
+          <li>Open The Gentry and sign in with Google or your email.</li>
+        </ol>
+        <p class="muted">Android 7 or newer.</p>
+      </section>
+    </div>
 
     <h2 style="margin-top:48px;">Good to know</h2>
     <ul class="steps">
-      <li>This is a beta. Things will change, and some things will break. Tell us about it at <a href="mailto:support@thegentry.app">support@thegentry.app</a>.</li>
+      <li>This is a beta. Things will change, and some things will break. Tell us about it at <a href="mailto:support@thegentry.app">support@thegentry.app</a>, or use the feedback option inside TestFlight.</li>
       <li>The waiver text is a draft pending legal review. Please use the app for testing only, not for a real event's release.</li>
-      <li>New versions aren't installed automatically. Check this page for updates.</li>
+      <li>You'll need a friend to try it with: one of you hosts an event and invites the other, who signs the waiver and scans in at the door.</li>
     </ul>
 
-    <h2 style="margin-top:48px;">Verify your download</h2>
-    <p class="muted">The file's SHA-256 fingerprint should be:</p>
-    <p><code>1c6086ad4908f41c76e72efb9d1c100e45178d9aaed353cdeb91cd47f756c5dc</code></p>
+    <details style="margin-top:40px;">
+      <summary class="muted">Android without Google Play (advanced)</summary>
+      <p class="muted" style="margin-top:12px;">You can install the app file directly. Android will ask you to allow installs from your browser for this one install, and Play Protect may warn that it's from an unknown developer: choose <strong>Install anyway</strong>. This file doesn't update itself.</p>
+      <a class="dl" href="https://github.com/kcox920/thegentry-site/releases/latest/download/TheGentry-beta.apk">Download the Android file (26 MB)</a>
+      <p class="muted">Its SHA-256 fingerprint should be:</p>
+      <p><code>1c6086ad4908f41c76e72efb9d1c100e45178d9aaed353cdeb91cd47f756c5dc</code></p>
+    </details>
   </div>
 </main>
 
