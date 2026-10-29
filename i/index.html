@@ -60,9 +60,15 @@
       <div><button class="copy" id="copy" type="button">Copy code</button></div>
     </div>
 
+    <div class="badges" style="justify-content:center;">
+      <a class="badge badge-link" id="get-ios" href="/beta/">Get it for iPhone</a>
+      <a class="badge badge-link" id="get-android" href="https://play.google.com/store/apps/details?id=app.thegentry.gentry">Get it for Android</a>
+    </div>
+    <p class="muted" style="margin-top:12px;">The Gentry is in early access. <a href="/beta/">See the install steps</a>.</p>
+
     <ol class="steps">
-      <li><strong>Get The Gentry</strong> for iPhone or Android. <span class="muted">(Now in early access. Your host can share the download.)</span></li>
-      <li><strong>Sign in</strong> with your email. You'll get a one-time code; there's no password.</li>
+      <li><strong>Get The Gentry</strong> with the button above for your phone.</li>
+      <li><strong>Sign in</strong> with your Google account.</li>
       <li>If The Gentry is already installed, tap the link in your text again and it opens directly. Otherwise, tap <strong>Have an invitation code?</strong> and enter the code above.</li>
       <li><strong>Sign the house terms</strong> and you're all set. Tap <strong>Arrive</strong> at the door.</li>
     </ol>
@@ -81,6 +87,13 @@
 </footer>
 
 <script>
+  // Put the button for the visitor's own phone first.
+  {
+    const ua = navigator.userAgent;
+    const ios = document.getElementById('get-ios'), android = document.getElementById('get-android');
+    if (/Android/i.test(ua)) android.parentNode.prepend(android);
+    else if (/iPhone|iPad|iPod/i.test(ua)) ios.parentNode.prepend(ios);
+  }
   // Only show codes in the expected format.
   const code = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
   if (/^[2-9A-HJKMNP-Z]{10}$/.test(code)) {
