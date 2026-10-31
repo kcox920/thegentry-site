@@ -39,6 +39,10 @@
     .ln .n:hover, .ln .n:focus-visible { color: var(--gold); text-decoration: underline; outline: none; }
     .ln .t { white-space: pre-wrap; overflow-wrap: anywhere; color: #e7e1d4; font-size: 16px; line-height: 1.7; padding-right: 16px; }
     .ln.blank .n { opacity: 0.45; }
+    .lang { display: inline-flex; border: 1px solid var(--gold-soft); border-radius: 6px; overflow: hidden; margin: 4px 0 0; }
+    .lang button { background: none; color: var(--muted); border: 0; padding: 8px 16px; font: inherit; font-size: 14px; cursor: pointer; }
+    .lang button[aria-pressed="true"] { background: var(--gold); color: #0b0b0b; font-weight: 600; }
+    .lang button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
     .legend { margin-top: 28px; color: #d9d4c9; font-size: 15px; }
     .legend code { color: var(--gold); }
     #status { color: var(--muted); }
@@ -75,12 +79,13 @@
     <section id="viewer" hidden>
       <h2 id="w-title" style="margin-top:32px;"></h2>
       <div class="meta" id="w-meta"></div>
+      <div class="lang" id="lang" role="group" aria-label="Language" hidden></div>
       <div class="actions">
         <a class="badge badge-link" id="suggest" href="#">Suggest a change</a>
-        <span class="hint">Or click a line number to comment on that line.</span>
+        <span class="hint" id="hint">Or click a line number to comment on that line.</span>
       </div>
       <div class="lines" id="lines" role="region" aria-label="Waiver text"></div>
-      <div class="legend">
+      <div class="legend" id="legend">
         <p>Words in <code>{{double braces}}</code> are filled in with the event's details when a guest signs. A host can choose that one signature covers every gathering at their home through December 31; the first paragraph then describes that scope instead of a single event. Your host's own house rules are not part of this text.</p>
         <p>Each guest also confirms they are 21 or older, agrees to arrange a safe ride, and signs electronically. The full text a guest signed is saved with their signature and never changed.</p>
       </div>
@@ -104,6 +109,7 @@
   const SUPABASE_URL = "https://buwakjjhnhymziqxbjql.supabase.co";
   const PUBLISHABLE_KEY = "sb_publishable_2M9gsHIbAoQ5eH65ymlUFA_M1rS_9_0"; // the same public key the app ships with; it can only read the public waivers
   const EVENT_LINE = 'Event: {{event}} at {{address}} (the "Premises") on {{date}}, hosted by {{host}} (the "Host").';
+  const EVENT_LINE_ES = 'Evento: {{event}} en {{address}} (la "Propiedad") el {{date}}, organizado por {{host}} (el "Anfitrión").';
   const MAIL = 'support@thegentry.app';
 
   const pick = document.getElementById('pick');
@@ -115,18 +121,92 @@
     return 'mailto:' + MAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   }
 
-  function show(slug) {
-    const w = waivers.find(x => x.slug === slug) || waivers[0];
+  // Words the page itself shows, in the waiver's own language.
+  const TEXT = {
+    en: {
+      meta: (w, n, d) => 'Version ' + w.version + ' · published ' + d + ' · ' + n + ' lines',
+      suggest: 'Suggest a change',
+      hint: 'Or click a line number to comment on that line.',
+      lineTip: n => 'Suggest a change to line ' + n,
+      subject: (label, n) => 'Waiver suggestion: ' + label + (n ? ', line ' + n : ''),
+      body: (label, n, text) => 'Waiver: ' + label + (n ? '\nLine ' + n + ': ' + text : '') + '\n\nMy suggestion:\n\n\nWhy (optional):\n',
+      version: 'version',
+      legend: [
+        'Words in <code>{{double braces}}</code> are filled in with the event\'s details when a guest signs. A host can choose that one signature covers every gathering at their home through December 31; the first paragraph then describes that scope instead of a single event. Your host\'s own house rules are not part of this text.',
+        'Each guest also confirms they are 21 or older, agrees to arrange a safe ride, and signs electronically. The full text a guest signed is saved with their signature and never changed.',
+      ],
+      locale: 'en-US',
+    },
+    es: {
+      meta: (w, n, d) => 'Versión ' + w.version + ' · publicado el ' + d + ' · ' + n + ' líneas',
+      suggest: 'Sugerir un cambio',
+      hint: 'O haga clic en un número de línea para comentar esa línea.',
+      lineTip: n => 'Sugerir un cambio a la línea ' + n,
+      subject: (label, n) => 'Sugerencia sobre el acuerdo: ' + label + (n ? ', línea ' + n : ''),
+      body: (label, n, text) => 'Acuerdo: ' + label + (n ? '\nLínea ' + n + ': ' + text : '') + '\n\nMi sugerencia:\n\n\nPor qué (opcional):\n',
+      version: 'versión',
+      legend: [
+        'Las palabras entre <code>{{llaves dobles}}</code> se completan con los datos del evento cuando un invitado firma. El anfitrión puede elegir que una sola firma cubra todas las reuniones en su casa hasta el 31 de diciembre; el primer párrafo describe entonces ese alcance en lugar de un solo evento. Las reglas de la casa de su anfitrión no forman parte de este texto.',
+        'Cada invitado también confirma que tiene 21 años o más, acepta coordinar un transporte seguro y firma electrónicamente. El texto completo que firmó el invitado se guarda con su firma y nunca se modifica.',
+      ],
+      locale: 'es-PR',
+    },
+  };
+  // Where a jurisdiction has more than one language, which one opens first.
+  const DEFAULT_LANGUAGE = { PR: 'es' };
+  const LANGUAGE_NAMES = { en: 'English', es: 'Español' };
+
+  // Waivers by jurisdiction: 'standard', or the state code. Each holds its languages.
+  function groups() {
+    const out = {};
+    waivers.forEach(w => { (out[w.state_code || 'standard'] = out[w.state_code || 'standard'] || []).push(w); });
+    return out;
+  }
+  // '#pr' or '#pr-es' or '#pr-en' or '#nv' -> the waiver to show.
+  function resolve(hash) {
+    const m = /^([a-z]{2}|standard)(?:-(en|es))?$/.exec(hash.toLowerCase());
+    const g = groups();
+    const key = m ? (m[1] === 'standard' ? 'standard' : m[1].toUpperCase()) : null;
+    const list = key && g[key] ? g[key] : (g.NV || waivers);
+    const lang = m && m[2] ? m[2] : DEFAULT_LANGUAGE[key];
+    return list.find(w => w.language === lang) || list[0];
+  }
+  function hashFor(w) {
+    const g = groups()[w.state_code || 'standard'];
+    const base = w.slug.split('-')[0];
+    return g.length > 1 ? base + '-' + w.language : base;
+  }
+
+  function show(w) {
     if (!w) return;
-    pick.value = w.slug;
-    if (location.hash !== '#' + w.slug) history.replaceState(null, '', '#' + w.slug);
-    const lines = w.body.replace('{{event_line}}', EVENT_LINE).replace(/\r\n/g, '\n').split('\n');
+    const t = TEXT[w.language] || TEXT.en;
+    const sibs = groups()[w.state_code || 'standard'];
+    pick.value = (w.state_code || 'standard');
+    const wanted = hashFor(w);
+    if (location.hash.slice(1) !== wanted) history.replaceState(null, '', '#' + wanted);
+    document.documentElement.lang = w.language;
+    const lines = w.body.replace('{{event_line}}', w.language === 'es' ? EVENT_LINE_ES : EVENT_LINE).replace(/\r\n/g, '\n').split('\n');
     document.getElementById('w-title').textContent = w.title;
-    document.getElementById('w-meta').textContent =
-      'Version ' + w.version + ' · published ' + new Date(w.published_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' · ' + lines.length + ' lines';
-    const label = w.title + ' (version ' + w.version + ')';
-    document.getElementById('suggest').href = mailto('Waiver suggestion: ' + label,
-      'Waiver: ' + label + '\n\nMy suggestion:\n\n\nWhy (optional):\n');
+    const day = new Date(w.published_at).toLocaleDateString(t.locale, { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('w-meta').textContent = t.meta(w, lines.length, day);
+    const lang = document.getElementById('lang');
+    lang.textContent = '';
+    lang.hidden = sibs.length < 2;
+    sibs.slice().sort((a, b) => a.language.localeCompare(b.language)).forEach(s => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = LANGUAGE_NAMES[s.language] || s.language;
+      b.lang = s.language;
+      b.setAttribute('aria-pressed', String(s.slug === w.slug));
+      b.addEventListener('click', () => show(s));
+      lang.append(b);
+    });
+    const label = w.title + ' (' + t.version + ' ' + w.version + ')';
+    const sug = document.getElementById('suggest');
+    sug.textContent = t.suggest;
+    sug.href = mailto(t.subject(label, 0), t.body(label, 0, ''));
+    document.getElementById('hint').textContent = t.hint;
+    document.getElementById('legend').innerHTML = t.legend.map(p => '<p>' + p + '</p>').join('');
     const box = document.getElementById('lines');
     box.textContent = '';
     lines.forEach((text, i) => {
@@ -135,27 +215,29 @@
       const n = document.createElement('a');
       n.className = 'n';
       n.textContent = String(i + 1);
-      n.href = mailto('Waiver suggestion: ' + label + ', line ' + (i + 1),
-        'Waiver: ' + label + '\nLine ' + (i + 1) + ': ' + text.slice(0, 400) + (text.length > 400 ? '…' : '') + '\n\nMy suggestion:\n\n\nWhy (optional):\n');
-      n.title = 'Suggest a change to line ' + (i + 1);
-      n.setAttribute('aria-label', 'Suggest a change to line ' + (i + 1));
-      const t = document.createElement('div');
-      t.className = 't';
-      t.textContent = text === '' ? ' ' : text;
-      row.append(n, t);
+      n.href = mailto(t.subject(label, i + 1), t.body(label, i + 1, text.slice(0, 400) + (text.length > 400 ? '…' : '')));
+      n.title = t.lineTip(i + 1);
+      n.setAttribute('aria-label', t.lineTip(i + 1));
+      const c = document.createElement('div');
+      c.className = 't';
+      c.textContent = text === '' ? ' ' : text;
+      row.append(n, c);
       box.append(row);
     });
     viewer.hidden = false;
   }
 
-  function addGroup(label, items) {
-    if (!items.length) return;
+  function addGroup(label, keys) {
+    if (!keys.length) return;
     const g = document.createElement('optgroup');
     g.label = label;
-    items.forEach(w => {
+    keys.forEach(k => {
+      const list = groups()[k];
       const o = document.createElement('option');
-      o.value = w.slug;
-      o.textContent = w.title.replace(/^The Gentry Release — /, '').replace(/^Gentry Standard Release — /, 'Standard: ');
+      o.value = k;
+      o.textContent = (k === 'standard' ? 'Standard: ' : '') + list[0].title
+        .replace(/ \((English|Español)\)$/, '').replace(/^The Gentry Release — /, '').replace(/^Acuerdo de The Gentry — /, '').replace(/^Gentry Standard Release — /, '')
+        + (list.length > 1 ? ' (' + list.map(x => LANGUAGE_NAMES[x.language]).sort().join(' / ') + ')' : '');
       g.append(o);
     });
     pick.append(g);
@@ -171,21 +253,22 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       waivers = await res.json();
       if (!Array.isArray(waivers) || !waivers.length) throw new Error('empty');
+      waivers.forEach(w => { w.language = w.language || 'en'; });
     } catch (e) {
       status.innerHTML = 'We couldn\'t load the waivers just now. Please try again, or email <a href="mailto:' + MAIL + '">' + MAIL + '</a> and we\'ll send them to you.';
       pick.innerHTML = '<option>Unavailable</option>';
       return;
     }
-    const states = waivers.filter(w => w.state_code && !['DC', 'PR', 'GU', 'VI', 'AS', 'MP'].includes(w.state_code));
-    const others = waivers.filter(w => ['DC', 'PR', 'GU', 'VI', 'AS', 'MP'].includes(w.state_code));
+    const other = ['DC', 'PR', 'GU', 'VI', 'AS', 'MP'];
+    const keys = Object.keys(groups());
     pick.textContent = '';
-    addGroup('Used when we can\'t tell the state', waivers.filter(w => !w.state_code));
-    addGroup('States', states);
-    addGroup('District of Columbia and territories', others);
+    addGroup('Used when we can\'t tell the state', keys.filter(k => k === 'standard'));
+    addGroup('States', keys.filter(k => k !== 'standard' && !other.includes(k)));
+    addGroup('District of Columbia and territories', keys.filter(k => other.includes(k)));
     pick.disabled = false;
-    pick.addEventListener('change', () => show(pick.value));
-    window.addEventListener('hashchange', () => show(location.hash.slice(1)));
-    show(location.hash.slice(1));
+    pick.addEventListener('change', () => show(resolve(pick.value)));
+    window.addEventListener('hashchange', () => show(resolve(location.hash.slice(1))));
+    show(resolve(location.hash.slice(1)));
   }
   load();
   document.querySelectorAll('[data-year]').forEach(e => (e.textContent = new Date().getFullYear()));
