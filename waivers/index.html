@@ -109,6 +109,7 @@
   const SUPABASE_URL = "https://buwakjjhnhymziqxbjql.supabase.co";
   const PUBLISHABLE_KEY = "sb_publishable_2M9gsHIbAoQ5eH65ymlUFA_M1rS_9_0"; // the same public key the app ships with; it can only read the public waivers
   const EVENT_LINE = 'Event: {{event}} at {{address}} (the "Premises") on {{date}}, hosted by {{host}} (the "Host").';
+  const EVENT_LINE_BOAT = 'Outing: {{event}} aboard {{vessel}} (the "Vessel"), departing from {{address}} on {{date}}, hosted by {{host}} (the "Owner").';
   const EVENT_LINE_ES = 'Evento: {{event}} en {{address}} (la "Propiedad") el {{date}}, organizado por {{host}} (el "Anfitrión").';
   const MAIL = 'support@thegentry.app';
 
@@ -152,40 +153,45 @@
       locale: 'es-PR',
     },
   };
+  const BOATING_LEGEND = [
+    'Words in <code>{{double braces}}</code> are filled in with the outing\'s details when a guest signs: the outing, the vessel (with its registration number, if the owner gave one), where it departs from, the date, and the owner. Federal maritime law applies where it applies; otherwise the law of the state the vessel is based in. A host can choose that one signature covers every outing aboard through December 31; the first paragraph then describes that scope.',
+    'Each guest also confirms they are 21 or older and signs electronically. The full text a guest signed is saved with their signature and never changed.',
+  ];
   // Where a jurisdiction has more than one language, which one opens first.
   const DEFAULT_LANGUAGE = { PR: 'es' };
   const LANGUAGE_NAMES = { en: 'English', es: 'Español' };
 
-  // Waivers by jurisdiction: 'standard', or the state code. Each holds its languages.
+  // Waivers by jurisdiction: 'standard', the state code, or the boating waiver's slug. Each holds its languages.
+  const keyOf = w => w.kind === 'boating' ? w.slug : (w.state_code || 'standard');
   function groups() {
     const out = {};
-    waivers.forEach(w => { (out[w.state_code || 'standard'] = out[w.state_code || 'standard'] || []).push(w); });
+    waivers.forEach(w => { const k = keyOf(w); (out[k] = out[k] || []).push(w); });
     return out;
   }
   // '#pr' or '#pr-es' or '#pr-en' or '#nv' -> the waiver to show.
   function resolve(hash) {
-    const m = /^([a-z]{2}|standard)(?:-(en|es))?$/.exec(hash.toLowerCase());
+    const m = /^(boat-[a-z]+|[a-z]{2}|standard)(?:-(en|es))?$/.exec(hash.toLowerCase());
     const g = groups();
-    const key = m ? (m[1] === 'standard' ? 'standard' : m[1].toUpperCase()) : null;
+    const key = m ? (m[1] === 'standard' || m[1].startsWith('boat-') ? m[1] : m[1].toUpperCase()) : null;
     const list = key && g[key] ? g[key] : (g.NV || waivers);
     const lang = m && m[2] ? m[2] : DEFAULT_LANGUAGE[key];
     return list.find(w => w.language === lang) || list[0];
   }
   function hashFor(w) {
-    const g = groups()[w.state_code || 'standard'];
-    const base = w.slug.split('-')[0];
+    const g = groups()[keyOf(w)];
+    const base = w.kind === 'boating' ? w.slug : w.slug.split('-')[0];
     return g.length > 1 ? base + '-' + w.language : base;
   }
 
   function show(w) {
     if (!w) return;
     const t = TEXT[w.language] || TEXT.en;
-    const sibs = groups()[w.state_code || 'standard'];
-    pick.value = (w.state_code || 'standard');
+    const sibs = groups()[keyOf(w)];
+    pick.value = keyOf(w);
     const wanted = hashFor(w);
     if (location.hash.slice(1) !== wanted) history.replaceState(null, '', '#' + wanted);
     document.documentElement.lang = w.language;
-    const lines = w.body.replace('{{event_line}}', w.language === 'es' ? EVENT_LINE_ES : EVENT_LINE).replace(/\r\n/g, '\n').split('\n');
+    const lines = w.body.replace('{{event_line}}', w.kind === 'boating' ? EVENT_LINE_BOAT : (w.language === 'es' ? EVENT_LINE_ES : EVENT_LINE)).replace(/\r\n/g, '\n').split('\n');
     document.getElementById('w-title').textContent = w.title;
     const day = new Date(w.published_at).toLocaleDateString(t.locale, { year: 'numeric', month: 'long', day: 'numeric' });
     document.getElementById('w-meta').textContent = t.meta(w, lines.length, day);
@@ -206,7 +212,8 @@
     sug.textContent = t.suggest;
     sug.href = mailto(t.subject(label, 0), t.body(label, 0, ''));
     document.getElementById('hint').textContent = t.hint;
-    document.getElementById('legend').innerHTML = t.legend.map(p => '<p>' + p + '</p>').join('');
+    const legend = w.kind === 'boating' ? BOATING_LEGEND : t.legend;
+    document.getElementById('legend').innerHTML = legend.map(p => '<p>' + p + '</p>').join('');
     const box = document.getElementById('lines');
     box.textContent = '';
     lines.forEach((text, i) => {
@@ -236,7 +243,7 @@
       const o = document.createElement('option');
       o.value = k;
       o.textContent = (k === 'standard' ? 'Standard: ' : '') + list[0].title
-        .replace(/ \((English|Español)\)$/, '').replace(/^The Gentry Release — /, '').replace(/^Acuerdo de The Gentry — /, '').replace(/^Gentry Standard Release — /, '')
+        .replace(/ \((English|Español)\)$/, '').replace(/^The Gentry Release — /, '').replace(/^The Gentry Boating Release — /, '').replace(/^Acuerdo de The Gentry — /, '').replace(/^Gentry Standard Release — /, '')
         + (list.length > 1 ? ' (' + list.map(x => LANGUAGE_NAMES[x.language]).sort().join(' / ') + ')' : '');
       g.append(o);
     });
@@ -262,9 +269,11 @@
     const other = ['DC', 'PR', 'GU', 'VI', 'AS', 'MP'];
     const keys = Object.keys(groups());
     pick.textContent = '';
+    const boats = keys.filter(k => k.startsWith('boat-')).sort();
     addGroup('Used when we can\'t tell the state', keys.filter(k => k === 'standard'));
-    addGroup('States', keys.filter(k => k !== 'standard' && !other.includes(k)));
+    addGroup('States', keys.filter(k => k !== 'standard' && !k.startsWith('boat-') && !other.includes(k)));
     addGroup('District of Columbia and territories', keys.filter(k => other.includes(k)));
+    addGroup('Boating (private outings aboard a vessel)', boats);
     pick.disabled = false;
     pick.addEventListener('change', () => show(resolve(pick.value)));
     window.addEventListener('hashchange', () => show(resolve(location.hash.slice(1))));
